@@ -30,16 +30,10 @@ rc=$?; if [[ $rc != 0 ]]; then
 fi
 git pull
 
-# Import rippled dev public keys
-if [ -e /opt/rippled-rpm/public-keys.txt ]; then
-  gpg --import /opt/rippled-rpm/public-keys.txt
+COMMIT_HASH=`git log --format="%H" -n 1`
 
-  # Verify git commit signature
-  COMMIT_SIGNER=`git verify-commit HEAD 2>&1 >/dev/null | grep 'Good signature from' | grep -oP '\"\K[^"]+'`
-  if [ -z "$COMMIT_SIGNER" ]; then
-    error "rippled git commit signature verification failed"
-  fi
-fi
+# Import rippled dev public keys
+gpg --import /opt/rippled-rpm/public-keys.txt
 
 RIPPLED_VERSION=$(egrep -i -o "\b(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9a-z\-]+(\.[0-9a-z\-]+)*)?(\+[0-9a-z\-]+(\.[0-9a-z\-]+)*)?\b" src/ripple/protocol/impl/BuildInfo.cpp)
 
@@ -67,14 +61,6 @@ cd ../validator-keys-tool
 git fetch origin
 git checkout origin/master
 
-if [ -e /opt/rippled-rpm/public-keys.txt ]; then
-  # Verify git commit signature
-  COMMIT_SIGNER=`git verify-commit HEAD 2>&1 >/dev/null | grep 'Good signature from' | grep -oP '\"\K[^"]+'`
-  if [ -z "$COMMIT_SIGNER" ]; then
-    error "validator-keys git commit signature verification failed"
-  fi
-fi
-
 git submodule update --init --recursive
 
 # Build the rpm
@@ -94,6 +80,7 @@ tar_file=$RPM_VERSION_RELEASE.tar.gz
 
 tar -zvcf $tar_file -C ~/rpmbuild/RPMS/x86_64/ . -C ~/rpmbuild/SRPMS/ .
 cp $tar_file /opt/rippled-rpm/out/
+chmod 0666 /opt/rippled-rpm/out/$tar_file
 
 RPM_MD5SUM=`rpm -Kv ~/rpmbuild/RPMS/x86_64/rippled-[0-9]*.rpm | grep 'MD5 digest' | grep -oP '\(\K[^)]+'`
 DBG_MD5SUM=`rpm -Kv ~/rpmbuild/RPMS/x86_64/rippled-debuginfo*.rpm | grep 'MD5 digest' | grep -oP '\(\K[^)]+'`
@@ -103,7 +90,8 @@ RPM_SHA256="$(sha256sum ~/rpmbuild/RPMS/x86_64/rippled-[0-9]*.rpm | awk '{ print
 DBG_SHA256="$(sha256sum ~/rpmbuild/RPMS/x86_64/rippled-debuginfo*.rpm | awk '{ print $1}')"
 SRC_SHA256="$(sha256sum ~/rpmbuild/SRPMS/*.rpm | awk '{ print $1}')"
 
-echo "rpm_md5sum=$RPM_MD5SUM" > /opt/rippled-rpm/out/build_vars
+echo "commit_hash=$COMMIT_HASH" > /opt/rippled-rpm/out/build_vars
+echo "rpm_md5sum=$RPM_MD5SUM" >> /opt/rippled-rpm/out/build_vars
 echo "dbg_md5sum=$DBG_MD5SUM" >> /opt/rippled-rpm/out/build_vars
 echo "src_md5sum=$SRC_MD5SUM" >> /opt/rippled-rpm/out/build_vars
 echo "rpm_sha256=$RPM_SHA256" >> /opt/rippled-rpm/out/build_vars
@@ -112,3 +100,5 @@ echo "src_sha256=$SRC_SHA256" >> /opt/rippled-rpm/out/build_vars
 echo "rippled_version=$RIPPLED_RPM_VERSION" >> /opt/rippled-rpm/out/build_vars
 echo "rpm_file_name=$tar_file" >> /opt/rippled-rpm/out/build_vars
 echo "rpm_version_release=$RPM_VERSION_RELEASE" >> /opt/rippled-rpm/out/build_vars
+chmod 0666 /opt/rippled-rpm/out/build_vars
+chmod 0777 /opt/rippled-rpm/out
