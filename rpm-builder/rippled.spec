@@ -30,8 +30,8 @@ rippled
 cd rippled
 mkdir -p build/gcc.release
 cd build/gcc.release
-RIPPLED_TRACE="${RIPPLED_TRACE:-0}"
-cmake ../.. -DCMAKE_BUILD_TYPE=Release -Dtarget=gcc.release -Dstatic=true -DCMAKE_VERBOSE_MAKEFILE=ON -DRIPPLED_TRACE=$RIPPLED_TRACE
+RIPPLED_PERF="${RIPPLED_PERF:-0}"
+cmake ../.. -DCMAKE_BUILD_TYPE=Release -Dtarget=gcc.release -Dstatic=true -DCMAKE_VERBOSE_MAKEFILE=ON -DRIPPLED_PERF=$RIPPLED_PERF
 cmake --build . -- -j 4 verbose=1
 
 cd ../../../validator-keys-tool
